@@ -21,10 +21,9 @@
     }
 
     function initMap() {
-        var myoverlay = new google.maps.OverlayView();        
+        var myoverlay = new google.maps.OverlayView();       
 
-        var newStyle = [{"featureType":"administrative","elementType":"all","stylers":[{"saturation":"-100"}]},{"featureType":"administrative.province","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"landscape","elementType":"all","stylers":[{"saturation":-100},{"lightness":65},{"visibility":"on"}]},{"featureType":"poi","elementType":"all","stylers":[{"saturation":-100},{"lightness":"50"},{"visibility":"simplified"}]},{"featureType":"road","elementType":"all","stylers":[{"saturation":"-100"}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.arterial","elementType":"all","stylers":[{"lightness":"30"}]},{"featureType":"road.local","elementType":"all","stylers":[{"lightness":"40"}]},{"featureType":"transit","elementType":"all","stylers":[{"saturation":-100},{"visibility":"simplified"}]},{"featureType":"water","elementType":"geometry","stylers":[{"hue":"#ffff00"},{"lightness":-25},{"saturation":-97}]},{"featureType":"water","elementType":"labels","stylers":[{"lightness":-25},{"saturation":-100}]}];
-        initializeMap(newStyle, false);
+        initializeMap("Subtle Grayscale");
 
         getCountryCentoidsFromJSON();
 
@@ -38,11 +37,7 @@
         myoverlay.setMap(map);
     }
 
-    function initializeMap(style, is_enabled){
-        if(!is_enabled){
-            style = [];
-        }
-
+    function initializeMap(styleName){
         map = new google.maps.Map(document.getElementById('map'), {
             zoom: 2,
             center: {
@@ -52,10 +47,13 @@
             options: {
                 minZoom: 2,
                 maxZoom: 10,
-                draggable: false,
-                styles: style
+                draggable: false
             }               
         });
+
+        if(styleName){
+            map.set('styles', JSON.parse(getStyleFromJson(styleName)));
+        }
     }
 
     function addVisitedCountryMarkers(){
@@ -77,6 +75,25 @@
         var name = countryCenterLookupDict[country].short_name;
 
         addMarker(name, lat, lng, is_home);            
+    }
+
+    function getJsonObject(filePath){
+        var jsonData = getJSON(filePath);
+        jsonObj = JSON.parse(jsonData);
+    }
+
+    function getStyleFromJson(styleName){
+        var jsonData = getJSON('json/mapstyles.json');
+        jsonObj = JSON.parse(jsonData);
+
+        for(var i=0; i<jsonObj.length; i++){
+            if(jsonObj[i].name === styleName){
+                return jsonObj[i].style;
+            }            
+        }
+
+
+        console.log("Style \""+ styleName +"\" not Found!");
     }
 
     function getCountryCentoidsFromJSON(){
