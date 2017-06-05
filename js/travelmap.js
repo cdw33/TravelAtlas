@@ -3,9 +3,17 @@
     var countryCenterLookupDict = {};
     var visitedCountriesList = [];
 
-    var RED_PIN_FLASHING = 'images/pin_red.gif';
-    var RED_PIN          = 'images/pin_red.png';
-    var BLUE_PIN         = 'images/pin_blue.png';
+    var RED_PIN          = 'pin_red.png';
+    var BLUE_PIN         = 'pin_blue.png';
+
+    const IMAGE_PATH             = 'images/'
+    const CONFIG_FILE            = "json/config.json";
+    const MAP_STYLES_FILE        = "json/mapstyles.json";
+    const COUNTRY_CENTOIDS_FILE  = "json/countrycenters.json";
+    const VISITED_COUNTRIES_FILE = "json/visitedcountries.json";
+
+    //Settings
+    var isStyleEnabled, styleName, centerLatitude, centerLongitude, defaultZoom, homeIcon, visitedIcon, isInfoDialogEnabled;
 
     function Country(id, short_name, long_name, latitude, longitude) {
         this.id         = id;
@@ -21,9 +29,11 @@
     }
 
     function initMap() {
-        var myoverlay = new google.maps.OverlayView();       
+        var myoverlay = new google.maps.OverlayView();     
 
-        initializeMap("Subtle Grayscale");
+        initializeSettings();  
+
+        initializeMap();
 
         getCountryCentoidsFromJSON();
 
@@ -37,12 +47,25 @@
         myoverlay.setMap(map);
     }
 
-    function initializeMap(styleName){
+    function initializeSettings(){
+        var settings = getJsonObject(CONFIG_FILE);
+
+        isStyleEnabled  = settings.enable_style;
+        styleName       = settings.style;
+        centerLatitude  = settings.center_latitude;
+        centerLongitude = settings.center_longitude;
+        defaultZoom     = settings.default_zoom;
+        homeIcon        = settings.home_icon;
+        visitedIcon     = settings.visited_icon;
+        isInfoDialogEnabled = settings.enable_info_dialog;
+    }
+
+    function initializeMap(){
         map = new google.maps.Map(document.getElementById('map'), {
-            zoom: 2,
+            zoom: defaultZoom,
             center: {
-                lat: 29.3341418,
-                lng: 10.0562153
+                lat: centerLatitude,
+                lng: centerLongitude
             },
             options: {
                 minZoom: 2,
@@ -51,7 +74,7 @@
             }               
         });
 
-        if(styleName){
+        if(isStyleEnabled && styleName){
             map.set('styles', JSON.parse(getStyleFromJson(styleName)));
         }
     }
@@ -83,7 +106,7 @@
     }
 
     function getStyleFromJson(styleName){
-        var jsonObj = getJsonObject('json/mapstyles.json');
+        var jsonObj = getJsonObject(MAP_STYLES_FILE);
 
         for(var i=0; i<jsonObj.length; i++){
             if(jsonObj[i].name === styleName){
@@ -96,7 +119,7 @@
     }
 
     function getCountryCentoidsFromJSON(){
-        var jsonObj = getJsonObject('json/countrycenters.json');
+        var jsonObj = getJsonObject(COUNTRY_CENTOIDS_FILE);
 
         for(var i=0; i<jsonObj.length; i++){                 
             var tmpCountry = new Country(jsonObj[i].id, jsonObj[i].short_name, 
@@ -108,7 +131,7 @@
     }
 
     function getVisitedCountriesFromJSON(){
-        var jsonObj = getJsonObject('json/visitedcountries.json');
+        var jsonObj = getJsonObject(VISITED_COUNTRIES_FILE);
 
         for(var i=0; i<jsonObj.length; i++){
             var tmpCountry = countryCenterLookupDict[jsonObj[i].country_name];
@@ -137,9 +160,26 @@
         return resp;
     }
 
+    function UrlExists(url){
+        var http = new XMLHttpRequest();
+        http.open('HEAD', url, false);
+        http.send();
+        return http.status!=404;
+    }
+
     var hoverwindow = null;
     var clickwindow = null;
     function addMarker(name, lat, lng, is_home) {
+
+        //Set marker to icon in config.json
+        var url = is_home ? IMAGE_PATH + homeIcon : IMAGE_PATH + visitedIcon;
+        //Fallback to defaults if icon is not found
+        if(!UrlExists(url)){
+            console.log("Icon \""+ url +"\" not Found!");
+            url = is_home ? IMAGE_PATH + BLUE_PIN : IMAGE_PATH + RED_PIN;
+        }
+
+        //Create new marker
         var marker = new google.maps.Marker({
             position: {
                 lat: lat,
@@ -148,7 +188,7 @@
             map: map,
             // set the icon as markerIcon declared above
             icon: {
-                url: is_home ? BLUE_PIN : RED_PIN,
+                url: url,
                 size: new google.maps.Size(12, 12), //marker image size
                 origin: new google.maps.Point(0, 0), // marker origin
                 anchor: new google.maps.Point(12, 12) // X-axis value (35, half of marker width) and 86 is Y-axis value (height of the marker).
@@ -158,30 +198,33 @@
             name: name
         });
 
-        marker.addListener('mouseover', 
-                            function() {
-                                infowindow = getInfoWindow(this);
+        //create marker listeners to handle info dialog if setting is enabled
+        if(isInfoDialogEnabled){
+            marker.addListener('mouseover', 
+                                function() {
+                                    infowindow = getInfoWindow(this);
 
-                                infowindow.open(map, this);
-                            },
-                            {passive: true});
+                                    infowindow.open(map, this);
+                                },
+                                {passive: true});
 
-        // assuming you also want to hide the infowindow when user mouses-out
-        marker.addListener('mouseout', 
-                            function() {infowindow.close();},
-                            {passive: true});
+            // assuming you also want to hide the infowindow when user mouses-out
+            marker.addListener('mouseout', 
+                                function() {infowindow.close();},
+                                {passive: true});
 
-        marker.addListener('click',
-                            function() {
-                                if(clickwindow){
-                                    clickwindow.close();
-                                }                
+            marker.addListener('click',
+                                function() {
+                                    if(clickwindow){
+                                        clickwindow.close();
+                                    }                
 
-                                clickwindow = getInfoWindow(marker);
+                                    clickwindow = getInfoWindow(marker);
 
-                                clickwindow.open(map, this);
-                            },
-                            {passive: true});
+                                    clickwindow.open(map, this);
+                                },
+                                {passive: true});
+        }
 
         markerList.push(marker);
     }
@@ -191,7 +234,7 @@
         var infoString = '<p style="text-align:center;">' + country.long_name + '</p>' +
         '<p> Visited in ' + country.year_visited + '!</p>' +
         '<p> Cities Explored: ' + country.cities_visited + '</p>' +
-        '<p style="text-align:center;"><img src="images/test-beacon.gif" style="width:64px;height:64px;align="center"></p>';
+        '<p style="text-align:center;"><img src="images/pin_red.gif" style="width:64px;height:64px;align="center"></p>';
 
         return new google.maps.InfoWindow({
                      content: infoString,
