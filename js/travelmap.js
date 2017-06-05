@@ -79,12 +79,11 @@
 
     function getJsonObject(filePath){
         var jsonData = getJSON(filePath);
-        jsonObj = JSON.parse(jsonData);
+        return JSON.parse(jsonData);
     }
 
     function getStyleFromJson(styleName){
-        var jsonData = getJSON('json/mapstyles.json');
-        jsonObj = JSON.parse(jsonData);
+        var jsonObj = getJsonObject('json/mapstyles.json');
 
         for(var i=0; i<jsonObj.length; i++){
             if(jsonObj[i].name === styleName){
@@ -97,8 +96,7 @@
     }
 
     function getCountryCentoidsFromJSON(){
-        var jsonData = getJSON('json/countrycenters.json');
-        jsonObj = JSON.parse(jsonData);
+        var jsonObj = getJsonObject('json/countrycenters.json');
 
         for(var i=0; i<jsonObj.length; i++){                 
             var tmpCountry = new Country(jsonObj[i].id, jsonObj[i].short_name, 
@@ -110,8 +108,7 @@
     }
 
     function getVisitedCountriesFromJSON(){
-        var jsonData = getJSON('json/visitedcountries.json');
-        jsonObj = JSON.parse(jsonData);
+        var jsonObj = getJsonObject('json/visitedcountries.json');
 
         for(var i=0; i<jsonObj.length; i++){
             var tmpCountry = countryCenterLookupDict[jsonObj[i].country_name];
