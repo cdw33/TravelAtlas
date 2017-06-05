@@ -12,6 +12,8 @@
     const COUNTRY_CENTOIDS_FILE  = "json/countrycenters.json";
     const VISITED_COUNTRIES_FILE = "json/visitedcountries.json";
 
+    var northEastBounds, southWestBounds;
+
     //Settings
     var isStyleEnabled, styleName, centerLatitude, centerLongitude, defaultZoom, homeIcon, visitedIcon, isInfoDialogEnabled;
 
@@ -47,6 +49,25 @@
         myoverlay.setMap(map);
     }
 
+    function setBounds(){
+        // bounds of the desired area
+        var allowedBounds = new google.maps.LatLngBounds(
+             new google.maps.LatLng(-54.908301749921485, -180), 
+             new google.maps.LatLng(65.64355817622092, 180)
+        );
+        var lastValidCenter = map.getCenter();
+
+        google.maps.event.addListener(map, 'center_changed', function() {
+            if (allowedBounds.contains(map.getCenter())) {
+                // still within valid bounds, so save the last valid position
+                lastValidCenter = map.getCenter();
+                return; 
+            }
+            // not valid anymore => return to last valid position
+            map.panTo(lastValidCenter);
+        });
+    }
+
     function initializeSettings(){
         var settings = getJsonObject(CONFIG_FILE);
 
@@ -70,13 +91,15 @@
             options: {
                 minZoom: 2,
                 maxZoom: 10,
-                draggable: false
+                draggable: true
             }               
         });
 
         if(isStyleEnabled && styleName){
             map.set('styles', JSON.parse(getStyleFromJson(styleName)));
         }
+
+        setBounds();
     }
 
     function addVisitedCountryMarkers(){
