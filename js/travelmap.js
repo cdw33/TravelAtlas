@@ -14,8 +14,14 @@
 
     var northEastBounds, southWestBounds;
 
+    var LocationType = {
+        "home":1, 
+        "country":2, 
+        "city":3
+    }
+
     //Settings
-    var isStyleEnabled, styleName, centerLatitude, centerLongitude, defaultZoom, homeIcon, visitedIcon, isInfoDialogEnabled;
+    var isStyleEnabled, styleName, centerLatitude, centerLongitude, defaultZoom, homeIcon, cityIcon, countryIcon, isInfoDialogEnabled, isCountryMarkersEnabled, isCityMarkersEnabled;
 
     function Country(id, short_name, long_name, latitude, longitude) {
         this.id         = id;
@@ -41,7 +47,7 @@
 
         getVisitedCountriesFromJSON();
 
-        addVisitedCountryMarkers();
+        addVisitedMarkers();
 
         myoverlay.draw = function() {
             this.getPanes().markerLayer.id = 'markerLayer';
@@ -77,8 +83,11 @@
         centerLongitude = settings.center_longitude;
         defaultZoom     = settings.default_zoom;
         homeIcon        = settings.home_icon;
-        visitedIcon     = settings.visited_icon;
-        isInfoDialogEnabled = settings.enable_info_dialog;
+        cityIcon        = settings.city_icon;
+        countryIcon     = settings.country_icon;
+        isInfoDialogEnabled     = settings.enable_info_dialog;
+        isCountryMarkersEnabled = settings.enable_country_markers;
+        isCityMarkersEnabled    = settings.enable_city_markers;
     }
 
     function initializeMap(){
@@ -102,11 +111,30 @@
         setBounds();
     }
 
-    function addVisitedCountryMarkers(){
+    function addVisitedMarkers(){
         for(var i=0; i<visitedCountriesList.length; i++){  
-            addMarkerForCountry(visitedCountriesList[i]);
+            addMarkerForCountry(visitedCountriesList[i].short_name);            
+
+            addMarkerForCity(visitedCountriesList[i].cities_visited);
         }
     }
+
+    function addMakerForHome(){
+
+    }
+
+    function addMarkerForCity(visitedCitiesList){
+        for(var i=0; i<visitedCitiesList.length; i++){ 
+            var name = visitedCitiesList[i].city_name;
+            var coors = visitedCitiesList[i].city_coordinates;
+
+            var lat = parseFloat(coors[0]);
+            var lng = parseFloat(coors[1]);
+
+            addMarker(name, lat, lng, cityIcon); 
+        }
+    }
+
 
     function addMarkerForCountry(country){
         if(countryCenterLookupDict[country] == null){
@@ -120,7 +148,7 @@
         var is_home = countryCenterLookupDict[country].is_home;
         var name = countryCenterLookupDict[country].short_name;
 
-        addMarker(name, lat, lng, is_home);            
+        addMarker(name, lat, lng, is_home ? homeIcon : countryIcon);            
     }
 
     function getJsonObject(filePath){
@@ -164,7 +192,8 @@
             tmpCountry.cities_visited =  jsonObj[i].cities_visited;
             tmpCountry.is_home        =  jsonObj[i].is_home;               
 
-            visitedCountriesList.push(tmpCountry.short_name);            
+            visitedCountriesList.push(tmpCountry);  
+
         }
     }
 
@@ -192,15 +221,17 @@
 
     var hoverwindow = null;
     var clickwindow = null;
-    function addMarker(name, lat, lng, is_home) {
+    function addMarker(name, lat, lng, icon) {
 
-        //Set marker to icon in config.json
-        var url = is_home ? IMAGE_PATH + homeIcon : IMAGE_PATH + visitedIcon;
-        //Fallback to defaults if icon is not found
-        if(!UrlExists(url)){
-            console.log("Icon \""+ url +"\" not Found!");
-            url = is_home ? IMAGE_PATH + BLUE_PIN : IMAGE_PATH + RED_PIN;
-        }
+        // //Set marker to icon in config.json
+        // var url = is_home ? IMAGE_PATH + homeIcon : IMAGE_PATH + cityIcon;
+        // //Fallback to defaults if icon is not found
+        // if(!UrlExists(url)){
+        //     console.log("Icon \""+ url +"\" not Found!");
+        //     url = is_home ? IMAGE_PATH + BLUE_PIN : IMAGE_PATH + RED_PIN;
+        // }
+
+        var url = IMAGE_PATH + icon;
 
         //Create new marker
         var marker = new google.maps.Marker({

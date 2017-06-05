@@ -5,6 +5,9 @@
 	"center_longitude":10.0562153,
 	"default_zoom":2,
 	"home_icon":"pin_blue.png",
-	"visited_icon":"pin_red.png",
-	"enable_info_dialog":true
+	"country_icon":"pin_red.png",
+	"city_icon":"pin_green.png",
+	"enable_info_dialog":true,
+	"enable_city_markers":true,
+	"enable_country_markers":true
 }
