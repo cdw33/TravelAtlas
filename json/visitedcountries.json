@@ -94,7 +94,7 @@
     "duration": "10 days",
     "cities_visited": [],
     "is_home": 0
-  },  
+  },
   {
     "-id": "13",
     "country_name": "Ireland",
@@ -241,5 +241,13 @@
     "duration": "",
     "cities_visited": [],
     "is_home": 0
+  },
+  {
+    "-id": "31",
+    "country_name": "Canada",
+    "year_visited": "2017",
+    "duration": "3 days",
+    "cities_visited": ["Niagara Falls", "Toronto", "Hamilton", "testing testing testing testing"],
+    "is_home": 0
   }
-]  
+]

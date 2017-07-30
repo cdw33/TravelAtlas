@@ -13,13 +13,6 @@
     const VISITED_COUNTRIES_FILE = "json/visitedcountries.json";
 
     var northEastBounds, southWestBounds;
-
-    var LocationType = {
-        "home":1, 
-        "country":2, 
-        "city":3
-    }
-
     //Settings
     var isStyleEnabled, styleName, centerLatitude, centerLongitude, defaultZoom, homeIcon, cityIcon, countryIcon, isInfoDialogEnabled, isCountryMarkersEnabled, isCityMarkersEnabled;
 
@@ -37,9 +30,9 @@
     }
 
     function initMap() {
-        var myoverlay = new google.maps.OverlayView();     
+        var myoverlay = new google.maps.OverlayView();
 
-        initializeSettings();  
+        initializeSettings();
 
         initializeMap();
 
@@ -58,8 +51,8 @@
     function setBounds(){
         // bounds of the desired area
         var allowedBounds = new google.maps.LatLngBounds(
-             new google.maps.LatLng(-54.908301749921485, -180), 
-             new google.maps.LatLng(65.64355817622092, 180)
+             new google.maps.LatLng(-54.908301749921485, -180),
+             new google.maps.LatLng(77.64355817622092, 180)
         );
         var lastValidCenter = map.getCenter();
 
@@ -67,7 +60,7 @@
             if (allowedBounds.contains(map.getCenter())) {
                 // still within valid bounds, so save the last valid position
                 lastValidCenter = map.getCenter();
-                return; 
+                return;
             }
             // not valid anymore => return to last valid position
             map.panTo(lastValidCenter);
@@ -101,7 +94,7 @@
                 minZoom: 2,
                 maxZoom: 10,
                 draggable: true
-            }               
+            }
         });
 
         if(isStyleEnabled && styleName){
@@ -112,26 +105,22 @@
     }
 
     function addVisitedMarkers(){
-        for(var i=0; i<visitedCountriesList.length; i++){  
-            addMarkerForCountry(visitedCountriesList[i].short_name);            
+        for(var i=0; i<visitedCountriesList.length; i++){
+            addMarkerForCountry(visitedCountriesList[i].short_name);
 
             addMarkerForCity(visitedCountriesList[i].cities_visited);
         }
     }
 
-    function addMakerForHome(){
-
-    }
-
     function addMarkerForCity(visitedCitiesList){
-        for(var i=0; i<visitedCitiesList.length; i++){ 
+        for(var i=0; i<visitedCitiesList.length; i++){
             var name = visitedCitiesList[i].city_name;
             var coors = visitedCitiesList[i].city_coordinates;
 
             var lat = parseFloat(coors[0]);
             var lng = parseFloat(coors[1]);
 
-            addMarker(name, lat, lng, cityIcon); 
+            addMarker(name, lat, lng, cityIcon);
         }
     }
 
@@ -148,7 +137,7 @@
         var is_home = countryCenterLookupDict[country].is_home;
         var name = countryCenterLookupDict[country].short_name;
 
-        addMarker(name, lat, lng, is_home ? homeIcon : countryIcon);            
+        addMarker(name, lat, lng, is_home ? homeIcon : countryIcon);
     }
 
     function getJsonObject(filePath){
@@ -162,7 +151,7 @@
         for(var i=0; i<jsonObj.length; i++){
             if(jsonObj[i].name === styleName){
                 return jsonObj[i].style;
-            }            
+            }
         }
 
 
@@ -172,12 +161,12 @@
     function getCountryCentoidsFromJSON(){
         var jsonObj = getJsonObject(COUNTRY_CENTOIDS_FILE);
 
-        for(var i=0; i<jsonObj.length; i++){                 
-            var tmpCountry = new Country(jsonObj[i].id, jsonObj[i].short_name, 
+        for(var i=0; i<jsonObj.length; i++){
+            var tmpCountry = new Country(jsonObj[i].id, jsonObj[i].short_name,
                                          jsonObj[i].long_name, jsonObj[i].latitude,
-                                         jsonObj[i].longitude);   
+                                         jsonObj[i].longitude);
 
-            countryCenterLookupDict[tmpCountry.short_name] = tmpCountry;              
+            countryCenterLookupDict[tmpCountry.short_name] = tmpCountry;
         }
     }
 
@@ -190,9 +179,9 @@
             tmpCountry.year_visited   =  jsonObj[i].year_visited;
             tmpCountry.duration       =  jsonObj[i].duration;
             tmpCountry.cities_visited =  jsonObj[i].cities_visited;
-            tmpCountry.is_home        =  jsonObj[i].is_home;               
+            tmpCountry.is_home        =  jsonObj[i].is_home;
 
-            visitedCountriesList.push(tmpCountry);  
+            visitedCountriesList.push(tmpCountry);
 
         }
     }
@@ -234,7 +223,43 @@
         var url = IMAGE_PATH + icon;
 
         //Create new marker
-        var marker = new google.maps.Marker({
+        var marker = createMarker(name, lat, lng, url);
+
+        //create marker listeners to handle info dialog if setting is enabled
+        if(isInfoDialogEnabled){
+            marker.addListener('mouseover',
+                                function() {
+                                    infowindow = getInfoWindow(this);
+
+                                    infowindow.open(map, this);
+                                },
+                                {passive: true});
+
+            // assuming you also want to hide the infowindow when user mouses-out
+            marker.addListener('mouseout',
+                                function() {infowindow.close();},
+                                {passive: true});
+
+            marker.addListener('click',
+                                function() {
+                                    if(clickwindow){
+                                        clickwindow.close();
+                                    }
+
+                                    clickwindow = getInfoWindow(marker);
+
+                                    clickwindow.open(map, this);
+                                },
+                                {passive: true});
+        }
+
+        markerList.push(marker);
+    }
+
+    //Create marker object given the name, coords, and icon
+    function createMarker(name, lat, lng, url){
+        //Create new marker
+        return new google.maps.Marker({
             position: {
                 lat: lat,
                 lng: lng
@@ -251,47 +276,49 @@
             optimized: false,
             name: name
         });
-
-        //create marker listeners to handle info dialog if setting is enabled
-        if(isInfoDialogEnabled){
-            marker.addListener('mouseover', 
-                                function() {
-                                    infowindow = getInfoWindow(this);
-
-                                    infowindow.open(map, this);
-                                },
-                                {passive: true});
-
-            // assuming you also want to hide the infowindow when user mouses-out
-            marker.addListener('mouseout', 
-                                function() {infowindow.close();},
-                                {passive: true});
-
-            marker.addListener('click',
-                                function() {
-                                    if(clickwindow){
-                                        clickwindow.close();
-                                    }                
-
-                                    clickwindow = getInfoWindow(marker);
-
-                                    clickwindow.open(map, this);
-                                },
-                                {passive: true});
-        }
-
-        markerList.push(marker);
     }
+
+    //Iterates through markerList and returns the Marker obj of the given Country
+    function getMarkerByName(countryName){
+        var marker;
+        for (var i in markerList) { 
+            marker = markerList[i];            
+            if(marker.name.localeCompare(countryName) == 0){ //Compare country name strings for equality (0 is equal)
+                return marker;
+             }
+        }
+    }
+
+    function buildPhotoWindow(country){
+        if(clickwindow){
+            clickwindow.close();
+        }
+        
+        var infoContent = '<p style="text-align:center;">' + country + '</p>' +
+            '<iframe src="plugins/slick/slick.html" align="middle" width=500px height=230px frameborder="0" marginheight="0" marginwidth="0" scrolling="no"></iframe>';
+        
+        var marker = getMarkerByName(country); //get marker from marker list
+        
+        clickwindow = buildInfoWindow(infoContent);
+        clickwindow.open(map, marker);
+    } 
 
     function getInfoWindow(marker){
         var country = countryCenterLookupDict[marker.name];
-        var infoString = '<p style="text-align:center;">' + country.long_name + '</p>' +
+        var infoContent = '<p style="text-align:center;margin-left: 26px;">' + country.short_name + '</p>' +
         '<p> Visited in ' + country.year_visited + '!</p>' +
         '<p> Cities Explored: ' + country.cities_visited + '</p>' +
-        '<p style="text-align:center;"><img src="images/pin_red.gif" style="width:64px;height:64px;align="center"></p>';
+        '<div style="width:100%;align-items: center;justify-content: center;display: flex;">' +    
+        '<input id="clickMe" style="margin-left: 26px;width:100px;height:20px" type="button" value="View Photos" onclick="buildPhotoWindow(' + '&apos;' + marker.name + '&apos;' + ');" />' +
+        '</div>';
 
+        return buildInfoWindow(infoContent);
+    }
+
+    function buildInfoWindow(infoContent){
         return new google.maps.InfoWindow({
-                     content: infoString,
-                     map: map
-                   });
+         content: infoContent,
+         map: map,
+         maxWidth: 500
+       });
     }
